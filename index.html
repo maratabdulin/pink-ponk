@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>PINK PUNK — Shuffle</title>
+
+<!-- PWA / Theme -->
+<meta name="theme-color" content="#FF6EB8">
+<meta name="description" content="Pink Punk — random ping-pong team shuffler">
+
+<!-- Apple-specific (make it look like a native app on iOS) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pink Punk">
+<meta name="mobile-web-app-capable" content="yes">
+
+<!-- Inline icon as SVG data URI (a pink ping-pong ball) -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23FF6EB8'/%3E%3Ccircle cx='50' cy='50' r='28' fill='%230A0A0A'/%3E%3Ccircle cx='50' cy='50' r='18' fill='none' stroke='%23FF6EB8' stroke-width='2'/%3E%3Ccircle cx='42' cy='42' r='4' fill='rgba(255,255,255,0.25)'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%23FF6EB8'/%3E%3Ccircle cx='90' cy='90' r='52' fill='%230A0A0A'/%3E%3Ccircle cx='90' cy='90' r='34' fill='none' stroke='%23FF6EB8' stroke-width='3'/%3E%3Ccircle cx='76' cy='76' r='7' fill='rgba(255,255,255,0.25)'/%3E%3C/svg%3E">
+
+<!-- Inline web manifest -->
+<link rel="manifest" href='data:application/manifest+json,{"name":"Pink Punk","short_name":"Pink Punk","start_url":".","display":"standalone","background_color":"%23FF6EB8","theme_color":"%23FF6EB8","orientation":"portrait","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 512 512%27%3E%3Crect width=%27512%27 height=%27512%27 fill=%27%23FF6EB8%27/%3E%3Ccircle cx=%27256%27 cy=%27256%27 r=%27145%27 fill=%27%230A0A0A%27/%3E%3Ccircle cx=%27256%27 cy=%27256%27 r=%2796%27 fill=%27none%27 stroke=%27%23FF6EB8%27 stroke-width=%278%27/%3E%3Ccircle cx=%27216%27 cy=%27216%27 r=%2720%27 fill=%27rgba(255,255,255,0.25)%27/%3E%3C/svg%3E","sizes":"any","type":"image/svg+xml"}]}'>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --pink: #FF6EB8;
+    --pink-deep: #E84BA0;
+    --pink-light: #FFC2DE;
+    --black: #0A0A0A;
+    --white: #FFF5F9;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: var(--pink);
+    color: var(--black);
+    font-family: 'Space Mono', monospace;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    /* respect iPhone notch and home indicator */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* hardcore grain texture like a printed poster */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 100;
+    mix-blend-mode: multiply;
+    opacity: 0.5;
+  }
+
+  /* ─────────────── BUBBLE LETTERING ─────────────── */
+  /* This is the signature element from the reference poster */
+  .bubble-text {
+    display: block;
+    line-height: 0.9;
+    margin: 0;
+    font-family: 'Archivo Black', sans-serif;
+    color: transparent;
+    -webkit-text-stroke: 0;
+    /* The bubble effect: many overlapping dots create chain-of-balls look */
+    text-shadow:
+      0 0 0 var(--black),
+      -3px 0 0 var(--black),
+      3px 0 0 var(--black),
+      0 -3px 0 var(--black),
+      0 3px 0 var(--black);
+    letter-spacing: -0.04em;
+    position: relative;
+  }
+
+  /* Real bubble lettering using SVG masks/text */
+  .bubble-logo {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+  }
+
+  /* ─────────────── LANG SWITCHER (vertical column of balls, right of logo) ─────────────── */
+  .lang-bar {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    z-index: 5;
+  }
+
+  .lang-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: 'Archivo Black', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0;
+    transition: all 0.4s cubic-bezier(0.34,1.6,0.64,1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--black);
+    position: relative;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--black);
+    font-size: 0;
+    overflow: hidden;
+  }
+  .lang-btn:hover { transform: scale(1.2); }
+  .lang-btn:active { transform: scale(0.85); }
+
+  /* ACTIVE: full ping-pong ball with language code */
+  .lang-btn.active {
+    width: 46px;
+    height: 46px;
+    background: var(--black);
+    color: var(--pink);
+    font-size: 0.72rem;
+    letter-spacing: 0.5px;
+    animation: ballBounce 0.55s cubic-bezier(0.34,1.6,0.64,1);
+  }
+  .lang-btn.active::after {
+    content: '';
+    position: absolute;
+    top: 18%; left: 18%; right: 18%; bottom: 18%;
+    border: 1.5px solid rgba(255,110,184,0.4);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .lang-btn.active::before {
+    content: '';
+    position: absolute;
+    top: 18%; left: 22%;
+    width: 22%; height: 22%;
+    background: rgba(255,255,255,0.18);
+    border-radius: 50%;
+    filter: blur(2px);
+    pointer-events: none;
+  }
+
+  /* vertical bounce */
+  @keyframes ballBounce {
+    0%   { transform: translateY(0) scale(1); }
+    30%  { transform: translateY(-10px) scale(0.92, 1.08); }
+    55%  { transform: translateY(2px) scale(1.05, 0.95); }
+    75%  { transform: translateY(-3px) scale(0.98, 1.02); }
+    100% { transform: translateY(0) scale(1); }
+  }
+
+  /* ─────────────── LAYOUT ─────────────── */
+  .screen {
+    display: none;
+    flex-direction: column;
+    min-height: 100dvh;
+    padding: 0 0 3rem;
+    position: relative;
+    z-index: 1;
+  }
+  .screen.active { display: flex; }
+
+  .header {
+    padding: 1.5rem 1.25rem 0.5rem;
+    position: relative;
+  }
+
+  /* PINK PUNK lockup */
+  .logo-stack {
+    line-height: 0.85;
+    margin: 0;
+    padding-right: 60px; /* room for vertical lang switcher on right */
+  }
+  .logo-stack svg {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    margin-bottom: -4px;
+  }
+
+  .logo-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--black);
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo-tag::before {
+    content: '';
+    width: 32px; height: 1.5px;
+    background: var(--black);
+  }
+
+  /* ─────────────── PRESETS ─────────────── */
+  .preset-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 1.25rem;
+  }
+  .preset-tag {
+    background: transparent;
+    border: 2px solid var(--black);
+    color: var(--black);
+    border-radius: 50px;
+    padding: 7px 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+  }
+  .preset-tag:active { transform: scale(0.93) rotate(-2deg); }
+  .preset-tag.added {
+    background: var(--black);
+    color: var(--pink);
+    border-color: var(--black);
+  }
+
+  /* ─────────────── SECTION LABEL ─────────────── */
+  .section-label {
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    font-weight: 700;
+    opacity: 0.7;
+    padding: 0 1.25rem;
+    margin-bottom: 0.6rem;
+    margin-top: 1.6rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::before {
+    content: '●';
+    color: var(--black);
+    font-size: 0.5rem;
+  }
+
+  /* ─────────────── INPUT ─────────────── */
+  .input-row {
+    display: flex;
+    gap: 8px;
+    padding: 0 1.25rem;
+  }
+  input[type=text] {
+    flex: 1;
+    background: var(--black);
+    color: var(--white);
+    border: none;
+    border-radius: 50px;
+    padding: 0.85rem 1.3rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.95rem;
+    font-weight: 700;
+    outline: none;
+    caret-color: var(--pink);
+  }
+  input[type=text]::placeholder { color: var(--pink); opacity: 0.7; font-weight: 700; }
+
+  .btn-add {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: var(--black);
+    color: var(--pink);
+    border: none;
+    font-size: 2rem;
+    font-weight: 400;
+    line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform 0.12s;
+  }
+  .btn-add:active { transform: scale(0.88) rotate(90deg); }
+
+  /* ─────────────── CHIPS ─────────────── */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 1.25rem;
+    min-height: 36px;
+  }
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--black);
+    color: var(--white);
+    border-radius: 50px;
+    padding: 7px 8px 7px 16px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    animation: popIn 0.25s cubic-bezier(0.34,1.6,0.64,1);
+  }
+  @keyframes popIn {
+    from { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+  }
+  .chip-del {
+    background: var(--pink);
+    border: none;
+    color: var(--black);
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ─────────────── COUNT BAR ─────────────── */
+  .count-bar {
+    margin: 1.5rem 1.25rem 0;
+    background: var(--black);
+    color: var(--white);
+    border-radius: 50px;
+    padding: 14px 22px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .count-num {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--pink);
+    font-family: 'Archivo Black', sans-serif;
+    line-height: 1;
+  }
+
+  /* ─────────────── BIG SHUFFLE BUTTON ─────────────── */
+  .btn-shuffle {
+    margin: 1rem 1.25rem 0;
+    background: var(--black);
+    color: var(--pink);
+    border: none;
+    border-radius: 50px;
+    padding: 1.3rem 2rem;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    transition: transform 0.1s, opacity 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-shuffle:active { transform: scale(0.97); }
+  .btn-shuffle:disabled { opacity: 0.3; }
+  .btn-shuffle .ball-icon {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--pink);
+    position: relative;
+    animation: bounce 1.4s ease-in-out infinite;
+  }
+  .btn-shuffle .ball-icon::after {
+    content: '';
+    position: absolute;
+    top: 18%; left: 22%;
+    width: 25%; height: 25%;
+    background: rgba(255,255,255,0.4);
+    border-radius: 50%;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .btn-shuffle:disabled .ball-icon { animation: none; }
+
+  /* ─────────────── RESULT SCREEN ─────────────── */
+  .result-header {
+    padding: 1.5rem 1.25rem 0.5rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .result-header-logo {
+    flex: 1;
+  }
+  .result-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  .btn-back, .btn-again {
+    border: none;
+    border-radius: 50px;
+    padding: 9px 18px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+  .btn-back {
+    background: transparent;
+    border: 2px solid var(--black);
+    color: var(--black);
+  }
+  .btn-again {
+    background: var(--black);
+    color: var(--pink);
+  }
+  .btn-back:active, .btn-again:active { transform: scale(0.95); }
+
+  /* ─────────────── TEAM CARDS ─────────────── */
+  .teams-wrap {
+    padding: 0 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 0.5rem;
+  }
+  .team-card {
+    background: var(--black);
+    border-radius: 28px;
+    padding: 1.4rem 1.5rem;
+    border: none;
+    position: relative;
+    overflow: hidden;
+    animation: slideUp 0.4s cubic-bezier(0.34,1.4,0.64,1) both;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+  .team-card:nth-child(1) { animation-delay: 0s; }
+  .team-card:nth-child(2) { animation-delay: 0.08s; background: var(--white); }
+  .team-card:nth-child(3) { animation-delay: 0.16s; }
+  .team-card:nth-child(4) { animation-delay: 0.24s; background: var(--pink); }
+  .team-card:nth-child(5) { animation-delay: 0.32s; }
+
+  /* default (black bg) styles */
+  .team-card .team-label { color: var(--pink); }
+  .team-card .player-name { color: var(--white); }
+  .team-card .vs-bubble {
+    background: var(--pink);
+    color: var(--black);
+  }
+
+  /* white card */
+  .team-card:nth-child(2) .team-label { color: rgba(0,0,0,0.5); }
+  .team-card:nth-child(2) .player-name { color: var(--black); }
+  .team-card:nth-child(2) .vs-bubble {
+    background: var(--black);
+    color: var(--pink);
+  }
+
+  /* pink card */
+  .team-card:nth-child(4) .team-label { color: rgba(0,0,0,0.6); }
+  .team-card:nth-child(4) .player-name { color: var(--black); }
+  .team-card:nth-child(4) .vs-bubble {
+    background: var(--black);
+    color: var(--pink);
+  }
+
+  .team-label {
+    font-size: 0.65rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .team-label .num {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 0;
+  }
+  .team-vs {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .player-name {
+    flex: 1;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1.5rem;
+    line-height: 1;
+    word-break: break-word;
+  }
+  .vs-bubble {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    letter-spacing: 1px;
+    font-family: 'Archivo Black', sans-serif;
+    position: relative;
+  }
+  /* ping-pong seam on vs-bubble */
+  .vs-bubble::after {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border: 1.5px solid rgba(0,0,0,0.15);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .team-card:nth-child(2) .vs-bubble::after { border-color: rgba(255,255,255,0.2); }
+  .team-card:nth-child(4) .vs-bubble::after { border-color: rgba(255,255,255,0.2); }
+
+  /* ─────────────── LEFTOVER ─────────────── */
+  .leftover-block {
+    margin: 14px 1.25rem 0;
+    border: 2px dashed var(--black);
+    border-radius: 20px;
+    padding: 1rem 1.2rem;
+    animation: slideUp 0.4s 0.35s both;
+  }
+  .leftover-block .section-label { padding: 0; margin: 0 0 10px; }
+  .leftover-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .leftover-chip {
+    background: var(--black);
+    color: var(--pink);
+    border-radius: 50px;
+    padding: 6px 16px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: 'Archivo Black', sans-serif;
+  }
+
+  /* ─────────────── PINK BALLS BACKGROUND ─────────────── */
+  /* This is the signature visual element from the photo reference */
+  .balls-deco {
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .ball {
+    position: absolute;
+    border-radius: 50%;
+    animation: floatBall linear infinite;
+  }
+  .ball.dark {
+    background: var(--black);
+    opacity: 0.07;
+  }
+  .ball.bright {
+    background: var(--pink-deep);
+    opacity: 0.45;
+  }
+  .ball.bright::after {
+    content: '';
+    position: absolute;
+    top: 18%; left: 22%;
+    width: 30%; height: 30%;
+    background: var(--pink-light);
+    border-radius: 50%;
+    filter: blur(2px);
+    opacity: 0.8;
+  }
+  @keyframes floatBall {
+    0%   { transform: translateY(0) rotate(0deg); }
+    50%  { transform: translateY(-40px) rotate(180deg); }
+    100% { transform: translateY(0) rotate(360deg); }
+  }
+
+  /* footer mark */
+  .footer-mark {
+    text-align: center;
+    margin-top: 2rem;
+    font-size: 0.65rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    font-weight: 700;
+    opacity: 0.5;
+    padding: 0 1.25rem;
+  }
+</style>
+</head>
+<body>
+
+<!-- ─────── Floating pink balls background ─────── -->
+<div class="balls-deco" id="balls"></div>
+
+<!-- ═════════ SCREEN 1: SETUP ═════════ -->
+<div class="screen active" id="screen-setup">
+
+  <!-- BUBBLE LETTERING LOGO -->
+  <div class="header">
+    <!-- Language switcher: vertical column of ping-pong balls, right of logo -->
+    <div class="lang-bar" role="tablist" aria-label="Language">
+      <button class="lang-btn active" data-lang="en" onclick="setLang('en')" aria-label="English">EN</button>
+      <button class="lang-btn" data-lang="es" onclick="setLang('es')" aria-label="Español">ES</button>
+      <button class="lang-btn" data-lang="cat" onclick="setLang('cat')" aria-label="Català">CAT</button>
+      <button class="lang-btn" data-lang="ru" onclick="setLang('ru')" aria-label="Русский">RU</button>
+    </div>
+
+    <div class="logo-stack">
+      <svg viewBox="0 0 360 180" xmlns="http://www.w3.org/2000/svg" aria-label="PINK PUNK">
+        <defs>
+          <!-- bubble effect filter creates the dotted "string of balls" look -->
+          <filter id="bubble" x="-10%" y="-10%" width="120%" height="120%">
+            <feMorphology operator="dilate" radius="2.5"/>
+            <feGaussianBlur stdDeviation="1.2"/>
+            <feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7"/>
+          </filter>
+        </defs>
+        <g filter="url(#bubble)" fill="#0A0A0A">
+          <text x="0" y="78" font-family="Archivo Black, sans-serif" font-size="92" letter-spacing="-3">PINK</text>
+          <text x="0" y="168" font-family="Archivo Black, sans-serif" font-size="92" letter-spacing="-3">PUNK</text>
+        </g>
+      </svg>
+    </div>
+    <div class="logo-tag" id="lbl-sub">team shuffle</div>
+  </div>
+
+  <div class="section-label"><span id="lbl-quick">Быстрое добавление</span></div>
+  <div class="preset-cloud" id="preset-cloud"></div>
+
+  <div class="section-label"><span id="lbl-manual">Или введи вручную</span></div>
+  <div class="input-row">
+    <input type="text" id="name-input" placeholder="Имя игрока..." maxlength="20" autocomplete="off" />
+    <button class="btn-add" onclick="addPlayer()" aria-label="Добавить">+</button>
+  </div>
+
+  <div class="section-label"><span id="lbl-list">Список</span> <span id="count-badge" style="font-family:'Archivo Black',sans-serif;font-size:0.9rem;letter-spacing:0;"></span></div>
+  <div class="chips" id="chips"></div>
+
+  <div class="count-bar" id="count-bar">
+    <span id="lbl-teamsize">Команд по 2 чел.</span>
+    <span style="display:flex;align-items:baseline;gap:6px;"><span class="count-num" id="teams-count">—</span> <span id="lbl-teams" style="font-size:0.7rem;">команд</span></span>
+  </div>
+
+  <button class="btn-shuffle" id="btn-shuffle" onclick="doShuffle()" disabled>
+    <div class="ball-icon"></div>
+    <span id="lbl-shuffle">Перемешать</span>
+  </button>
+
+  <div class="footer-mark">★ Pink Punk · 2026 ★</div>
+
+</div>
+
+<!-- ═════════ SCREEN 2: RESULT ═════════ -->
+<div class="screen" id="screen-result">
+
+  <div class="result-header">
+    <div class="result-header-logo">
+      <svg viewBox="0 0 360 90" xmlns="http://www.w3.org/2000/svg" aria-label="PINK" style="width:100%;max-width:200px;">
+        <defs>
+          <filter id="bubble2" x="-10%" y="-10%" width="120%" height="120%">
+            <feMorphology operator="dilate" radius="2"/>
+            <feGaussianBlur stdDeviation="1"/>
+            <feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7"/>
+          </filter>
+        </defs>
+        <g filter="url(#bubble2)" fill="#0A0A0A">
+          <text x="0" y="72" font-family="Archivo Black, sans-serif" font-size="88" letter-spacing="-3">PINK</text>
+        </g>
+      </svg>
+      <div class="logo-tag" id="lbl-result-sub" style="margin-top:8px;">результат</div>
+    </div>
+    <div class="result-actions">
+      <button class="btn-back" onclick="goBack()" id="lbl-back">← назад</button>
+      <button class="btn-again" onclick="doShuffle()" id="lbl-again">↻ ещё раз</button>
+    </div>
+  </div>
+
+  <div class="teams-wrap" id="teams-wrap"></div>
+  <div id="leftover-container"></div>
+
+  <div class="footer-mark">★ Pink Punk · 2026 ★</div>
+
+</div>
+
+<script>
+// ─────────── i18n ───────────
+const I18N = {
+  ru: {
+    sub: 'team shuffle',
+    quick: 'Быстрое добавление',
+    manual: 'Или введи вручную',
+    list: 'Список',
+    placeholder: 'Имя игрока...',
+    teamsize: 'Команд по 2',
+    teamsizeOdd: 'По 2 + 1 запасной',
+    teams: 'команд',
+    shuffle: 'Перемешать',
+    resultSub: 'результат',
+    back: '← назад',
+    again: '↻ ещё',
+    teamPrefix: 'МАТЧ',
+    spare: 'Запасной игрок',
+  },
+  en: {
+    sub: 'team shuffle',
+    quick: 'Quick add',
+    manual: 'Or type manually',
+    list: 'Players',
+    placeholder: 'Player name...',
+    teamsize: '2 per team',
+    teamsizeOdd: '2 per team + 1 spare',
+    teams: 'teams',
+    shuffle: 'Shuffle',
+    resultSub: 'result',
+    back: '← back',
+    again: '↻ again',
+    teamPrefix: 'MATCH',
+    spare: 'Spare player',
+  },
+  es: {
+    sub: 'sorteo de equipos',
+    quick: 'Añadir rápido',
+    manual: 'O escribe manualmente',
+    list: 'Jugadores',
+    placeholder: 'Nombre del jugador...',
+    teamsize: '2 por equipo',
+    teamsizeOdd: '2 por equipo + 1 reserva',
+    teams: 'equipos',
+    shuffle: 'Mezclar',
+    resultSub: 'resultado',
+    back: '← volver',
+    again: '↻ otra vez',
+    teamPrefix: 'PARTIDO',
+    spare: 'Jugador reserva',
+  },
+  cat: {
+    sub: "sorteig d'equips",
+    quick: 'Afegir ràpid',
+    manual: 'O escriu manualment',
+    list: 'Jugadors',
+    placeholder: 'Nom del jugador...',
+    teamsize: '2 per equip',
+    teamsizeOdd: '2 per equip + 1 reserva',
+    teams: 'equips',
+    shuffle: 'Barrejar',
+    resultSub: 'resultat',
+    back: '← enrere',
+    again: '↻ una altra',
+    teamPrefix: 'PARTIT',
+    spare: 'Jugador de reserva',
+  },
+};
+
+const LANG_ORDER = ['en', 'es', 'cat', 'ru'];
+let lang = 'en';
+
+function cycleLang() {
+  const idx = LANG_ORDER.indexOf(lang);
+  const next = LANG_ORDER[(idx + 1) % LANG_ORDER.length];
+  setLang(next);
+}
+
+function setLang(l) {
+  // if tapping the currently active ball, cycle to next
+  if (l === lang) {
+    const idx = LANG_ORDER.indexOf(lang);
+    l = LANG_ORDER[(idx + 1) % LANG_ORDER.length];
+  }
+  lang = l;
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    // re-trigger bounce animation by removing/adding class
+    if (b.dataset.lang === l) {
+      b.classList.remove('active');
+      void b.offsetWidth; // force reflow
+      b.classList.add('active');
+    } else {
+      b.classList.remove('active');
+    }
+  });
+  const t = I18N[l];
+  setText('lbl-sub', t.sub);
+  setText('lbl-quick', t.quick);
+  setText('lbl-manual', t.manual);
+  setText('lbl-list', t.list);
+  document.getElementById('name-input').placeholder = t.placeholder;
+  setText('lbl-shuffle', t.shuffle);
+  setText('lbl-result-sub', t.resultSub);
+  setText('lbl-back', t.back);
+  setText('lbl-again', t.again);
+  setText('lbl-teams', t.teams);
+  renderChips();
+  saveState();
+}
+
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+// ─────────── State + localStorage ───────────
+const STORAGE_KEY = 'pink-punk-state';
+
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    return { players: Array.isArray(s.players) ? s.players : [], lang: s.lang };
+  } catch { return { players: [], lang: null }; }
+}
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ players, lang }));
+  } catch {}
+}
+
+let players = loadState().players;
+const savedLang = loadState().lang;
+if (savedLang && I18N[savedLang]) lang = savedLang;
+
+const PRESETS = ['Vit','Diana','Andy','Andrey','Marat','Pasha','Tony','Tim','Miron'];
+
+// ─────────── Preset cloud ───────────
+function renderPresets() {
+  const wrap = document.getElementById('preset-cloud');
+  wrap.innerHTML = PRESETS.map(name => {
+    const isAdded = players.includes(name);
+    return `<button class="preset-tag ${isAdded ? 'added' : ''}" onclick="togglePreset('${name}')">${isAdded ? '✓ ' : '+ '}${name}</button>`;
+  }).join('');
+}
+
+function togglePreset(name) {
+  if (players.includes(name)) {
+    players = players.filter(p => p !== name);
+  } else {
+    players.push(name);
+  }
+  renderChips();
+  renderPresets();
+  saveState();
+}
+
+// ─────────── Decorative balls ───────────
+(function() {
+  const c = document.getElementById('balls');
+  // bright pink balls (signature element from photo reference)
+  for (let i = 0; i < 18; i++) {
+    const b = document.createElement('div');
+    b.className = 'ball bright';
+    const size = 12 + Math.random() * 45;
+    b.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation-duration:${5+Math.random()*8}s;animation-delay:${-Math.random()*8}s;`;
+    c.appendChild(b);
+  }
+  // a few subtle dark ones for depth
+  for (let i = 0; i < 8; i++) {
+    const b = document.createElement('div');
+    b.className = 'ball dark';
+    const size = 30 + Math.random() * 80;
+    b.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation-duration:${6+Math.random()*8}s;animation-delay:${-Math.random()*6}s;`;
+    c.appendChild(b);
+  }
+})();
+
+// ─────────── Add player ───────────
+function addPlayer() {
+  const inp = document.getElementById('name-input');
+  const name = inp.value.trim();
+  if (!name || players.includes(name)) { inp.focus(); return; }
+  players.push(name);
+  inp.value = '';
+  inp.focus();
+  renderChips();
+  renderPresets();
+  saveState();
+}
+document.getElementById('name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addPlayer();
+});
+
+function removePlayer(i) {
+  players.splice(i, 1);
+  renderChips();
+  renderPresets();
+  saveState();
+}
+
+// ─────────── Render chips ───────────
+function renderChips() {
+  const t = I18N[lang];
+  const wrap = document.getElementById('chips');
+  wrap.innerHTML = players.map((p, i) => `<div class="chip">${p}<button class="chip-del" onclick="removePlayer(${i})">✕</button></div>`).join('');
+  const n = players.length;
+  const full = Math.floor(n / 2);
+  const rem = n % 2;
+  document.getElementById('count-badge').textContent = n > 0 ? `(${n})` : '';
+  document.getElementById('teams-count').textContent = n >= 2 ? full : '—';
+  document.getElementById('btn-shuffle').disabled = n < 2;
+  document.getElementById('lbl-teamsize').textContent = (rem > 0 && n >= 2) ? t.teamsizeOdd : t.teamsize;
+}
+
+// ─────────── Shuffle ───────────
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function doShuffle() {
+  if (players.length < 2) return;
+  const t = I18N[lang];
+  const sh = shuffle(players);
+  const teams = [];
+  let leftover = null;
+  for (let i = 0; i < sh.length; i += 2) {
+    if (i + 1 < sh.length) teams.push([sh[i], sh[i+1]]);
+    else leftover = sh[i];
+  }
+  document.getElementById('screen-setup').classList.remove('active');
+  document.getElementById('screen-result').classList.add('active');
+
+  document.getElementById('teams-wrap').innerHTML = teams.map((team, i) => `
+    <div class="team-card">
+      <div class="team-label">${t.teamPrefix} <span class="num">${String(i+1).padStart(2,'0')}</span></div>
+      <div class="team-vs">
+        <div class="player-name">${team[0]}</div>
+        <div class="vs-bubble">VS</div>
+        <div class="player-name" style="text-align:right;">${team[1]}</div>
+      </div>
+    </div>
+  `).join('');
+
+  const lc = document.getElementById('leftover-container');
+  lc.innerHTML = leftover ? `
+    <div class="leftover-block">
+      <div class="section-label">${t.spare}</div>
+      <div class="leftover-chips"><div class="leftover-chip">${leftover}</div></div>
+    </div>` : '';
+
+  window.scrollTo(0, 0);
+}
+
+function goBack() {
+  document.getElementById('screen-result').classList.remove('active');
+  document.getElementById('screen-setup').classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+renderPresets();
+// initialize default language texts (without cycling) + sync the active ball
+(function initLang() {
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === lang);
+  });
+  const t = I18N[lang];
+  setText('lbl-sub', t.sub);
+  setText('lbl-quick', t.quick);
+  setText('lbl-manual', t.manual);
+  setText('lbl-list', t.list);
+  document.getElementById('name-input').placeholder = t.placeholder;
+  setText('lbl-shuffle', t.shuffle);
+  setText('lbl-result-sub', t.resultSub);
+  setText('lbl-back', t.back);
+  setText('lbl-again', t.again);
+  setText('lbl-teams', t.teams);
+})();
+renderChips();
+</script>
+</body>
+</html>
