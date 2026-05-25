@@ -795,9 +795,8 @@ function saveState() {
   } catch {}
 }
 
-let players = loadState().players;
-const savedLang = loadState().lang;
-if (savedLang && I18N[savedLang]) lang = savedLang;
+let players = [];
+
 
 // ─────────── Shuffle ───────────
 function shuffle(arr) {
